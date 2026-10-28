@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบคำนวณและจำลองการหยอดคะแนนประเมินราชการ (80:20)</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Sarabun', 'Segoe UI', Tahoma, sans-serif; }
+    body { background-color: #f1f5f9; margin: 0; padding: 20px; color: #1e293b; }
+    .container { max-width: 1040px; margin: auto; }
+    .card { background: #ffffff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); margin-bottom: 20px; }
+    h1 { font-size: 1.3rem; color: #1e3a8a; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+    h2 { font-size: 1.1rem; color: #1d4ed8; margin-top: 15px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.9rem; }
+    th { background-color: #2563eb; color: #ffffff; font-weight: 600; padding: 8px 10px; border: 1px solid #1d4ed8; }
+    td { border: 1px solid #cbd5e1; padding: 8px 10px; }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    input, select, button { padding: 6px 10px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.9rem; }
+    button.btn-add { background: #10b981; color: white; border: none; cursor: pointer; font-weight: 600; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; }
+    button.btn-del { background: #ef4444; color: white; border: none; cursor: pointer; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+    .tfoot-row td { background: #f1f5f9; font-weight: 700; }
+    .badge { display: inline-block; padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 0.95rem; margin: 3px; cursor: pointer; border: 2px solid transparent; }
+    .badge-blue { background: #dbeafe; color: #1e40af; border-color: #bfdbfe; }
+    .badge-green { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
+    .badge-amber { background: #fef3c7; color: #b45309; border-color: #fde68a; }
+    .badge-active { background: #2563eb !important; color: #ffffff !important; border-color: #1d4ed8 !important; }
+    .summary-table th { background-color: #cbd5e1; color: #1e293b; font-weight: 700; border-color: #94a3b8; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card">
+    <h1>ระบบคำนวณคะแนนประเมินผลการปฏิบัติราชการ (สูตร ก × ข × 20)</h1>
+    <p style="font-size: 0.88rem; color: #64748b; margin-top: -6px;">
+      กำหนดน้ำหนัก (%) และเกณฑ์ขั้นต่ำรายข้อ ระบบจะจำลองผลคะแนนที่ ผอ. เคาะได้ และเฉลยช่องคะแนน (ก) ที่ต้องหยอด
+    </p>
+
+    <!-- ส่วนที่ 1: ผลสัมฤทธิ์ของงาน -->
+    <h2>
+      <span>ส่วนที่ 1: ผลสัมฤทธิ์ของงาน (น้ำหนักรวม 80%)</span>
+      <button class="btn-add" onclick="addRow('kpiBody', 'kpi-w', 'kpi-min')">+ เพิ่มตัวชี้วัด</button>
+    </h2>
+    <table>
+      <thead>
+        <tr>
+          <th>ตัวชี้วัด</th>
+          <th class="text-center" style="width: 15%;">น้ำหนัก (ข)%</th>
+          <th class="text-center" style="width: 18%; background: #1e40af;">ขั้นต่ำที่ยอมรับได้</th>
+          <th class="text-center" style="width: 12%;">จัดการ</th>
+        </tr>
+      </thead>
+      <tbody id="kpiBody">
+        <tr>
+          <td><input type="text" value="งานบริการรองรับระบบเครือข่ายและระบบฉุกเฉิน" style="width: 100%;"></td>
+          <td class="text-center"><input type="number" class="kpi-w" value="30" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="kpi-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this)">ลบ</button></td>
+        </tr>
+        <tr>
+          <td><input type="text" value="งานจัดการปัญหาผู้ใช้งานและระบบฉุกเฉิน" style="width: 100%;"></td>
+          <td class="text-center"><input type="number" class="kpi-w" value="25" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="kpi-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this)">ลบ</button></td>
+        </tr>
+        <tr>
+          <td><input type="text" value="งานจัดการระบบไฟล์และตรวจสอบสิทธิ์การใช้งาน" style="width: 100%;"></td>
+          <td class="text-center"><input type="number" class="kpi-w" value="25" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="kpi-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this)">ลบ</button></td>
+        </tr>
+        <tr>
+          <td><input type="text" value="งานตามข้อตกลง KPI อื่นๆ" style="width: 100%;"></td>
+          <td class="text-center"><input type="number" class="kpi-w" value="20" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="kpi-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this)">ลบ</button></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr class="tfoot-row">
+          <td class="text-right">รวม (ส่วนที่ 1):</td>
+          <td class="text-center" id="kpiSumW" style="color: #15803d;">100%</td>
+          <td colspan="2"><small style="color:#64748b;">(ต้องรวมได้ 100%)</small></td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <!-- ส่วนที่ 2: สมรรถนะ -->
+    <h2 style="margin-top: 25px;">
+      <span>ส่วนที่ 2: พฤติกรรมการปฏิบัติราชการ / สมรรถนะ (น้ำหนักรวม 20%)</span>
+      <button class="btn-add" onclick="addRow('compBody', 'comp-w', 'comp-min')">+ เพิ่มสมรรถนะ</button>
+    </h2>
+    <table>
+      <thead>
+        <tr>
+          <th>สมรรถนะ</th>
+          <th class="text-center" style="width: 15%;">น้ำหนัก (ข)%</th>
+          <th class="text-center" style="width: 18%; background: #1e40af;">ขั้นต่ำที่ยอมรับได้</th>
+          <th class="text-center" style="width: 12%;">จัดการ</th>
+        </tr>
+      </thead>
+      <tbody id="compBody">
+        <tr>
+          <td><input type="text" value="สมรรถนะหลัก 1" style="width: 100%;"></td>
+          <td class="text-center"><input type="number" class="comp-w" value="15" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="comp-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this)">ลบ</button></td>
+        </tr>
+        <tr>
+          <td><input type="text" value="สมรรถนะหลัก 2" style="width: 100%;"></td>
+          <td class="text-center"><input type="number" class="comp-w" value="15" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="comp-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this)">ลบ</button></td>
+        </tr>
+        <tr>
+          <td><input type="text" value="สมรรถนะหลัก 3" style="width: 100%;"></td>
+          <td class="text-center"><input type="number" class="comp-w" value="15" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="comp-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this)">ลบ</button></td>
+        </tr>
+        <tr>
+          <td><input type="text" value="สมรรถนะหลัก 4" style="width: 100%;"></td>
+          <td class="text-center"><input type="number" class="comp-w" value="10" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="comp-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this)">ลบ</button></td>
+        </tr>
+        <tr>
+          <td><input type="text" value="สมรรถนะประจำสายงาน 1" style="width: 100%;"></td>
+          <td class="text-center"><input type="number" class="comp-w" value="15" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="comp-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this)">ลบ</button></td>
+        </tr>
+        <tr>
+          <td><input type="text" value="สมรรถนะประจำสายงาน 2" style="width: 100%;"></td>
+          <td class="text-center"><input type="number" class="comp-w" value="15" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="comp-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this)">ลบ</button></td>
+        </tr>
+        <tr>
+          <td><input type="text" value="สมรรถนะประจำสายงาน 3" style="width: 100%;"></td>
+          <td class="text-center"><input type="number" class="comp-w" value="15" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="comp-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this)">ลบ</button></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr class="tfoot-row">
+          <td class="text-right">รวม (ส่วนที่ 2):</td>
+          <td class="text-center" id="compSumW" style="color: #15803d;">100%</td>
+          <td colspan="2"><small style="color:#64748b;">(ต้องรวมได้ 100%)</small></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- กล่องแสดงตัวเลขที่ ผอ. เคาะได้ -->
+  <div class="card" style="border-left: 6px solid #2563eb;">
+    <h2 style="color: #0f172a; margin-top: 0;">คะแนนรวมสุทธิที่ ผอ. สามารถเคาะได้ (เลขจำนวนเต็ม)</h2>
+    <p style="font-size: 0.88rem; color: #64748b; margin-top: -4px;">
+      คลิกที่ตัวเลขคะแนนที่ต้องการ เพื่อดูเฉลยการหยอดคะแนน (ก) ในแต่ละช่อง:
+    </p>
+    <div id="possibleScoresBox" style="margin-top: 10px; line-height: 2.2;"></div>
+  </div>
+
+  <!-- กล่องเฉลยการหยอดคะแนน -->
+  <div class="card" id="solutionCard" style="display: none; border-left: 6px solid #10b981;">
+    <div id="solutionContent"></div>
+  </div>
+</div>
+
+<script>
+  let selectedScore = null;
+
+  function addRow(tbodyId, wClass, minClass) {
+    const tbody = document.getElementById(tbodyId);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" value="รายการใหม่" style="width: 100%;"></td>
+      <td class="text-center"><input type="number" class="${wClass}" value="0" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+      <td class="text-center">
+        <select class="${minClass}" onchange="updateAll()">
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+        </select>
+      </td>
+      <td class="text-center"><button class="btn-del" onclick="delRow(this)">ลบ</button></td>
+    `;
+    tbody.appendChild(tr);
+    updateAll();
+  }
+
+  function delRow(btn) {
+    btn.closest('tr').remove();
+    updateAll();
+  }
+
+  function getData() {
+    const kNames = [], kW = [], kMin = [];
+    document.querySelectorAll('#kpiBody tr').forEach(tr => {
+      kNames.push(tr.querySelector('input[type="text"]').value);
+      kW.push(parseFloat(tr.querySelector('.kpi-w').value) || 0);
+      kMin.push(parseInt(tr.querySelector('.kpi-min').value) || 1);
+    });
+
+    const cNames = [], cW = [], cMin = [];
+    document.querySelectorAll('#compBody tr').forEach(tr => {
+      cNames.push(tr.querySelector('input[type="text"]').value);
+      cW.push(parseFloat(tr.querySelector('.comp-w').value) || 0);
+      cMin.push(parseInt(tr.querySelector('.comp-min').value) || 1);
+    });
+
+    const kSum = kW.reduce((a, b) => a + b, 0);
+    const cSum = cW.reduce((a, b) => a + b, 0);
+
+    return { kNames, kW, kMin, kSum, cNames, cW, cMin, cSum };
+  }
+
+  function updateAll() {
+    const { kNames, kW, kMin, kSum, cNames, cW, cMin, cSum } = getData();
+
+    document.getElementById('kpiSumW').innerText = kSum.toFixed(0) + '%';
+    document.getElementById('kpiSumW').style.color = Math.abs(kSum - 100) < 0.01 ? '#15803d' : '#b91c1c';
+
+    document.getElementById('compSumW').innerText = cSum.toFixed(0) + '%';
+    document.getElementById('compSumW').style.color = Math.abs(cSum - 100) < 0.01 ? '#15803d' : '#b91c1c';
+
+    const box = document.getElementById('possibleScoresBox');
+
+    if (Math.abs(kSum - 100) > 0.01 || Math.abs(cSum - 100) > 0.01) {
+      box.innerHTML = `<span style="color:#b91c1c; font-weight:700;">⚠️ กรุณาปรับผลรวมน้ำหนักของทั้ง 2 ส่วนให้ครบ 100% ก่อน</span>`;
+      document.getElementById('solutionCard').style.display = 'none';
+      return;
+    }
+
+    // สร้างชุดผลลัพธ์ของ KPI (ก x ข x 20)
+    let kpiList = [];
+    function genKPI(idx, cur) {
+      if (idx === kW.length) {
+        let sumPart = 0;
+        let details = [];
+        for (let i = 0; i < kW.length; i++) {
+          let scorePart = cur[i] * (kW[i] / 100.0) * 20.0;
+          sumPart += scorePart;
+          details.push({ score: cur[i], weight: kW[i], part: scorePart });
+        }
+        kpiList.push({ scores: [...cur], sumScore: Math.round(sumPart * 100) / 100, details });
+        return;
+      }
+      for (let s = 5; s >= kMin[idx]; s--) { cur.push(s); genKPI(idx + 1, cur); cur.pop(); }
+    }
+    genKPI(0, []);
+
+    // สร้างชุดผลลัพธ์ของ สมรรถนะ (ก x ข x 20)
+    let compList = [];
+    function genComp(idx, cur) {
+      if (idx === cW.length) {
+        let sumPart = 0;
+        let details = [];
+        for (let i = 0; i < cW.length; i++) {
+          let scorePart = cur[i] * (cW[i] / 100.0) * 20.0;
+          sumPart += scorePart;
+          details.push({ score: cur[i], weight: cW[i], part: scorePart });
+        }
+        compList.push({ scores: [...cur], sumScore: Math.round(sumPart * 100) / 100, details });
+        return;
+      }
+      for (let s = 5; s >= cMin[idx]; s--) { cur.push(s); genComp(idx + 1, cur); cur.pop(); }
+    }
+    genComp(0, []);
+
+    // หาคะแนนรวมสุทธิ 80:20
+    let map = new Map();
+    for (let k of kpiList) {
+      for (let c of compList) {
+        let total = Math.round((k.sumScore * 0.80 + c.sumScore * 0.20) * 100) / 100;
+        if (Number.isInteger(total) && total >= 60 && total <= 100) {
+          if (!map.has(total)) {
+            map.set(total, {
+              k,
+              c,
+              kWeighted: Math.round(k.sumScore * 0.80 * 100) / 100,
+              cWeighted: Math.round(c.sumScore * 0.20 * 100) / 100,
+              total
+            });
+          }
+        }
+      }
+    }
+
+    const availableScores = Array.from(map.keys()).sort((a,b)=>a-b);
+
+    if (availableScores.length === 0) {
+      box.innerHTML = `<span style="color:#b91c1c;">ไม่พบตัวเลขคะแนนจำนวนเต็มที่สอดคล้องกับเกณฑ์ขั้นต่ำ ลองปรับลดเกณฑ์ขั้นต่ำลง</span>`;
+      document.getElementById('solutionCard').style.display = 'none';
+      return;
+    }
+
+    let html = '';
+    availableScores.forEach(sc => {
+      let badgeClass = sc >= 90 ? 'badge-green' : (sc >= 80 ? 'badge-blue' : 'badge-amber');
+      let active = sc === selectedScore ? 'badge-active' : '';
+      let grade = sc >= 90 ? 'ดีเด่น' : (sc >= 80 ? 'ดีมาก' : (sc >= 70 ? 'ดี' : 'พอใช้'));
+      html += `<span class="badge ${badgeClass} ${active}" onclick="pickScore(${sc})">${sc} (${grade})</span> `;
+    });
+    box.innerHTML = html;
+
+    if (selectedScore && map.has(selectedScore)) {
+      renderSolution(map.get(selectedScore), kNames, kW, cNames, cW);
+    } else if (map.has(93)) {
+      pickScore(93);
+    } else if (availableScores.length > 0) {
+      pickScore(availableScores[availableScores.length - 1]);
+    }
+  }
+
+  function pickScore(sc) {
+    selectedScore = sc;
+    updateAll();
+  }
+
+  function renderSolution(sol, kNames, kW, cNames, cW) {
+    const card = document.getElementById('solutionCard');
+    const content = document.getElementById('solutionContent');
+    card.style.display = 'block';
+
+    let html = `
+      <h2 style="color: #0f172a; margin-top:0;">เฉลยการหยอดคะแนนสำหรับเป้าหมาย: <span style="color: #2563eb; font-size:1.4rem;">${sol.total} คะแนน</span></h2>
+
+      <h3 style="color: #1e40af; margin-bottom: 6px;">1. ช่องที่ต้องหยอดในส่วนที่ 1: ผลสัมฤทธิ์ของงาน</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>ตัวชี้วัด</th>
+            <th class="text-center" style="width: 20%; background: #1e40af;">คะแนน (ก) ที่ต้องหยอด</th>
+            <th class="text-center" style="width: 20%;">น้ำหนัก (ข)%</th>
+            <th class="text-center" style="width: 25%;">รวมคะแนน (ก × ข × 20)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sol.k.details.map((d, i) => `
+            <tr>
+              <td>${kNames[i]}</td>
+              <td class="text-center" style="background: #eff6ff;">
+                <strong style="color: #2563eb; font-size: 1.25rem;">${d.score}</strong>
+              </td>
+              <td class="text-center">${d.weight}%</td>
+              <td class="text-center font-mono">${d.part.toFixed(0)}</td>
+            </tr>
+          `).join('')}
+          <tr class="tfoot-row">
+            <td colspan="2" class="text-right">รวม (ส่วนที่ 1):</td>
+            <td class="text-center" style="color:#15803d;">100%</td>
+            <td class="text-center" style="color:#2563eb; font-size: 1.1rem;">${sol.k.sumScore.toFixed(0)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 style="color: #15803d; margin-top: 20px; margin-bottom: 6px;">2. ช่องที่ต้องหยอดในส่วนที่ 2: สมรรถนะ</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>สมรรถนะ</th>
+            <th class="text-center" style="width: 20%; background: #166534;">คะแนน (ก) ที่ต้องหยอด</th>
+            <th class="text-center" style="width: 20%;">น้ำหนัก (ข)%</th>
+            <th class="text-center" style="width: 25%;">รวมคะแนน (ก × ข × 20)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sol.c.details.map((d, i) => `
+            <tr>
+              <td>${cNames[i]}</td>
+              <td class="text-center" style="background: #f0fdf4;">
+                <strong style="color: #16a34a; font-size: 1.25rem;">${d.score}</strong>
+              </td>
+              <td class="text-center">${d.weight}%</td>
+              <td class="text-center font-mono">${d.part.toFixed(0)}</td>
+            </tr>
+          `).join('')}
+          <tr class="tfoot-row">
+            <td colspan="2" class="text-right">รวม (ส่วนที่ 2):</td>
+            <td class="text-center" style="color:#15803d;">100%</td>
+            <td class="text-center" style="color:#16a34a; font-size: 1.1rem;">${sol.c.sumScore.toFixed(0)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ตารางสรุปเหมือนภาพที่ 3 -->
+      <h3 style="color: #0f172a; margin-top: 24px; margin-bottom: 6px;">ตารางสรุปองค์ประกอบการประเมิน</h3>
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>องค์ประกอบการประเมิน</th>
+            <th class="text-center" style="width: 20%;">คะแนน (ก)</th>
+            <th class="text-center" style="width: 20%;">น้ำหนัก (ข)</th>
+            <th class="text-center" style="width: 25%;">รวมคะแนน (ก × ข)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ส่วนที่ 1: ผลสัมฤทธิ์ของงาน</td>
+            <td class="text-center font-mono">${sol.k.sumScore.toFixed(0)}</td>
+            <td class="text-center">80%</td>
+            <td class="text-center font-mono" style="font-weight:700;">${sol.kWeighted.toFixed(0)}</td>
+          </tr>
+          <tr>
+            <td>ส่วนที่ 2: พฤติกรรมการปฏิบัติราชการ (สมรรถนะ)</td>
+            <td class="text-center font-mono">${sol.c.sumScore.toFixed(0)}</td>
+            <td class="text-center">20%</td>
+            <td class="text-center font-mono" style="font-weight:700;">${sol.cWeighted.toFixed(0)}</td>
+          </tr>
+          <tr style="background: #f8fafc; font-weight: 800;">
+            <td class="text-center">รวม</td>
+            <td class="text-center"></td>
+            <td class="text-center">100%</td>
+            <td class="text-center" style="color: #2563eb; font-size: 1.25rem;">${sol.total.toFixed(0)}</td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+
+    content.innerHTML = html;
+  }
+
+  // เริ่มทำงาน
+  updateAll();
+</script>
+
+</body>
+</html>

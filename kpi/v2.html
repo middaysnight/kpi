@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบวิเคราะห์สูตรและคำนวณคะแนน</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        h2 { text-align: center; color: #1a365d; margin-bottom: 8px; }
+        p.subtitle { text-align: center; color: #64748b; margin-bottom: 20px; }
+        
+        /* แท็บ Navigation */
+        .tab-buttons { display: flex; border-bottom: 2px solid #cbd5e1; margin-bottom: 20px; }
+        .tab-btn {
+            padding: 12px 24px;
+            border: none;
+            background: none;
+            font-size: 16px;
+            font-weight: bold;
+            color: #64748b;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Input Controls Panel */
+        .input-panel {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .input-box { display: flex; flex-direction: column; }
+        .input-box label { font-weight: 600; margin-bottom: 6px; color: #334155; font-size: 14px; }
+        .input-box input {
+            padding: 10px;
+            border: 2px solid #cbd5e1;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #0f172a;
+        }
+        .input-box input:focus { border-color: #2563eb; outline: none; }
+
+        /* Dynamic Table for Tab 2 */
+        .dynamic-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        .dynamic-table th, .dynamic-table td { border: 1px solid #cbd5e1; padding: 8px; text-align: center; }
+        .dynamic-table th { background-color: #e2e8f0; color: #1e293b; font-size: 14px; }
+
+        /* Buttons */
+        .btn { padding: 12px 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background-color: #2563eb; color: white; width: 100%; }
+        .btn-primary:hover { background-color: #1d4ed8; }
+        .btn-add { background-color: #10b981; color: white; padding: 8px 16px; margin-bottom: 15px; }
+        .btn-add:hover { background-color: #059669; }
+        .btn-del { background-color: #ef4444; color: white; padding: 6px 12px; border-radius: 4px; }
+        .btn-del:hover { background-color: #dc2626; }
+
+        /* Summary Cards */
+        .summary-card { padding: 18px; border-radius: 8px; margin-bottom: 25px; font-size: 15px; line-height: 1.6; }
+        .summary-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+        .summary-warning { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+
+        /* Result Tables */
+        table.result-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        table.result-table th, table.result-table td { border: 1px solid #e2e8f0; padding: 10px; text-align: center; }
+        table.result-table th { background-color: #1e293b; color: white; font-weight: 600; position: sticky; top: 0; }
+        table.result-table tr:nth-child(even) { background-color: #f8fafc; }
+        tr.impossible-row { background-color: #fff1f2 !important; color: #e11d48; }
+        .score-col { font-weight: bold; color: #0284c7; font-size: 16px; }
+        .formula-col { text-align: left; font-family: monospace; color: #475569; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>คำนวณและสอบทานสูตรคะแนน</h2>
+    <p class="subtitle">เลือกสลับแท็บเพื่อทดสอบแบบ 4 ช่องเปอร์เซ็นต์เดิม หรือกำหนดจำนวนช่องและน้ำหนักเอง</p>
+
+    <!-- แท็บ Navigation -->
+    <div class="tab-buttons">
+        <button class="tab-btn active" onclick="switchTab(1)">Tab 1: สูตร 4 ช่อง (%) เดิม</button>
+        <button class="tab-btn" onclick="switchTab(2)">Tab 2: กำหนดจำนวนช่องและน้ำหนักเอง</button>
+    </div>
+
+    <!-- TAB 1: โค้ดฉบับดั้งเดิม 100% (ห้ามแตะ) -->
+    <div id="tab1" class="tab-content active">
+        <div class="input-panel">
+            <div class="input-grid">
+                <div class="input-box">
+                    <label>น้ำหนักช่อง 1 (%)</label>
+                    <input type="number" id="p1" value="35" min="0" max="100">
+                </div>
+                <div class="input-box">
+                    <label>น้ำหนักช่อง 2 (%)</label>
+                    <input type="number" id="p2" value="35" min="0" max="100">
+                </div>
+                <div class="input-box">
+                    <label>น้ำหนักช่อง 3 (%)</label>
+                    <input type="number" id="p3" value="25" min="0" max="100">
+                </div>
+                <div class="input-box">
+                    <label>น้ำหนักช่อง 4 (%)</label>
+                    <input type="number" id="p4" value="5" min="0" max="100">
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="runCalculation()">⚡ คำนวณตารางคะแนนใหม่</button>
+        </div>
+
+        <div id="summaryCard" class="summary-card" style="display:none;"></div>
+
+        <table class="result-table">
+            <thead>
+                <tr>
+                    <th style="width: 12%;">คะแนน</th>
+                    <th style="width: 10%;">ก1</th>
+                    <th style="width: 10%;">ก2</th>
+                    <th style="width: 10%;">ก3</th>
+                    <th style="width: 10%;">ก4</th>
+                    <th>วิธีคิดคำนวณตามสูตร</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+
+    <!-- TAB 2: เพิ่ม/ลบช่องคะแนนได้อิสระ อ้างอิงสูตรเดียวกับ Tab 1 -->
+    <div id="tab2" class="tab-content">
+        <div class="input-panel">
+            <p style="margin-top:0; font-weight:bold; color:#334155;">ตั้งค่าช่องคะแนนและน้ำหนัก (เพิ่ม/ลบ แถวได้อิสระ):</p>
+            <table class="dynamic-table">
+                <thead>
+                    <tr>
+                        <th>ชื่อช่อง</th>
+                        <th>น้ำหนัก (%)</th>
+                        <th>ตัวคูณสูตร (% ÷ 100 × 20)</th>
+                        <th>จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="t2_input_rows">
+                    <tr>
+                        <td class="row-title">ช่องที่ 1</td>
+                        <td><input type="number" class="t2-weight" value="35" style="width:120px; text-align:center;"></td>
+                        <td class="preview-mult">7.0</td>
+                        <td><button class="btn btn-del" onclick="removeRow(this)">ลบ</button></td>
+                    </tr>
+                    <tr>
+                        <td class="row-title">ช่องที่ 2</td>
+                        <td><input type="number" class="t2-weight" value="35" style="width:120px; text-align:center;"></td>
+                        <td class="preview-mult">7.0</td>
+                        <td><button class="btn btn-del" onclick="removeRow(this)">ลบ</button></td>
+                    </tr>
+                    <tr>
+                        <td class="row-title">ช่องที่ 3</td>
+                        <td><input type="number" class="t2-weight" value="25" style="width:120px; text-align:center;"></td>
+                        <td class="preview-mult">5.0</td>
+                        <td><button class="btn btn-del" onclick="removeRow(this)">ลบ</button></td>
+                    </tr>
+                    <tr>
+                        <td class="row-title">ช่องที่ 4</td>
+                        <td><input type="number" class="t2-weight" value="5" style="width:120px; text-align:center;"></td>
+                        <td class="preview-mult">1.0</td>
+                        <td><button class="btn btn-del" onclick="removeRow(this)">ลบ</button></td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <button class="btn btn-add" onclick="addRow()">➕ เพิ่มช่องคะแนน</button>
+            <button class="btn btn-primary" onclick="runTab2()">⚡ ประมวลผล Tab 2</button>
+        </div>
+
+        <div id="t2_summary" class="summary-card" style="display:none;"></div>
+        <table class="result-table">
+            <thead id="t2_thead"></thead>
+            <tbody id="t2_tbody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// สลับแท็บ
+function switchTab(tabIndex) {
+    document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+        btn.classList.toggle('active', idx === tabIndex - 1);
+    });
+    document.querySelectorAll('.tab-content').forEach((content, idx) => {
+        content.classList.toggle('active', idx === tabIndex - 1);
+    });
+}
+
+// ==========================================
+// CODE DEDICATED FOR TAB 1 (ดั้งเดิม 100%)
+// ==========================================
+function runCalculation() {
+    const p1 = parseFloat(document.getElementById('p1').value) || 0;
+    const p2 = parseFloat(document.getElementById('p2').value) || 0;
+    const p3 = parseFloat(document.getElementById('p3').value) || 0;
+    const p4 = parseFloat(document.getElementById('p4').value) || 0;
+
+    const totalP = p1 + p2 + p3 + p4;
+
+    const m1 = p1 * 0.2;
+    const m2 = p2 * 0.2;
+    const m3 = p3 * 0.2;
+    const m4 = p4 * 0.2;
+
+    let possibleScores = {};
+
+    for (let g1 = 1; g1 <= 5; g1++) {
+        for (let g2 = 1; g2 <= 5; g2++) {
+            for (let g3 = 1; g3 <= 5; g3++) {
+                for (let g4 = 1; g4 <= 5; g4++) {
+                    let score = Math.round((g1 * m1) + (g2 * m2) + (g3 * m3) + (g4 * m4));
+                    if (!possibleScores[score]) {
+                        possibleScores[score] = [g1, g2, g3, g4];
+                    }
+                }
+            }
+        }
+    }
+
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+
+    let successCount = 0;
+    let missingScores = [];
+
+    for (let target = 1; target <= 100; target++) {
+        const row = document.createElement('tr');
+
+        if (possibleScores[target]) {
+            successCount++;
+            const [g1, g2, g3, g4] = possibleScores[target];
+            const c1 = Number((g1 * m1).toFixed(1));
+            const c2 = Number((g2 * m2).toFixed(1));
+            const c3 = Number((g3 * m3).toFixed(1));
+            const c4 = Number((g4 * m4).toFixed(1));
+
+            row.innerHTML = `
+                <td class="score-col">${target}</td>
+                <td><strong>${g1}</strong></td>
+                <td><strong>${g2}</strong></td>
+                <td><strong>${g3}</strong></td>
+                <td><strong>${g4}</strong></td>
+                <td class="formula-col">(${g1}×${m1.toFixed(1)}) + (${g2}×${m2.toFixed(1)}) + (${g3}×${m3.toFixed(1)}) + (${g4}×${m4.toFixed(1)}) = ${c1}+${c2}+${c3}+${c4} = <strong>${target}</strong></td>
+            `;
+        } else {
+            missingScores.push(target);
+            row.className = 'impossible-row';
+            row.innerHTML = `
+                <td class="score-col" style="color:#e11d48;">${target}</td>
+                <td colspan="4">❌ ไม่พบชุดเลข 1-5 ที่ทำได้</td>
+                <td style="font-style:italic;">สูตรสัดส่วนนี้ไม่รองรับคะแนน ${target}</td>
+            `;
+        }
+        tbody.appendChild(row);
+    }
+
+    const summaryCard = document.getElementById('summaryCard');
+    summaryCard.style.display = 'block';
+
+    let warningText = totalP !== 100 ? `<br><span style="color:#e11d48; font-weight:bold;">⚠️ เตือน: เปอร์เซ็นต์รวมกันได้ ${totalP}% (ควรจะเท่ากับ 100%)</span>` : '';
+
+    if (missingScores.length === 0) {
+        summaryCard.className = 'summary-card summary-success';
+        summaryCard.innerHTML = `
+            <strong>🎉 สูตรนี้สมบูรณ์แบบ! (${p1}%, ${p2}%, ${p3}%, ${p4}%)</strong><br>
+            • ตัวคูณแต่ละช่องคือ: <strong>${m1.toFixed(1)}, ${m2.toFixed(1)}, ${m3.toFixed(1)}, ${m4.toFixed(1)}</strong><br>
+            • ทำคะแนนได้ครบทั้ง <strong>${successCount} คะแนน</strong> (ตั้งแต่ช่วง Min ถึง Max ไม่มีเลขตกหล่นเลย) ${warningText}
+        `;
+    } else {
+        summaryCard.className = 'summary-card summary-warning';
+        summaryCard.innerHTML = `
+            <strong>⚠️ สูตรนี้ทำได้ไม่ครบทุกเลข (${p1}%, ${p2}%, ${p3}%, ${p4}%)</strong><br>
+            • ตัวคูณแต่ละช่องคือ: <strong>${m1.toFixed(1)}, ${m2.toFixed(1)}, ${m3.toFixed(1)}, ${m4.toFixed(1)}</strong><br>
+            • ทำได้: <strong>${successCount}</strong> จาก 100 คะแนน<br>
+            • คะแนนที่ไม่สามารถทำได้ (${missingScores.length} ตัว): <strong>${missingScores.join(', ')}</strong> ${warningText}
+        `;
+    }
+}
+
+// ==========================================
+// CODE FOR TAB 2 (สูตรเดียวกับ Tab 1 100%)
+// ==========================================
+let rowCounter = 4;
+
+function addRow() {
+    rowCounter++;
+    const tbody = document.getElementById('t2_input_rows');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td class="row-title">ช่องที่ ${rowCounter}</td>
+        <td><input type="number" class="t2-weight" value="10" style="width:120px; text-align:center;"></td>
+        <td class="preview-mult">2.0</td>
+        <td><button class="btn btn-del" onclick="removeRow(this)">ลบ</button></td>
+    `;
+    tbody.appendChild(tr);
+}
+
+function removeRow(btn) {
+    btn.closest('tr').remove();
+}
+
+function runTab2() {
+    const rows = document.querySelectorAll('#t2_input_rows tr');
+    let configs = [];
+    let totalWeight = 0;
+
+    rows.forEach((row) => {
+        let titleText = row.querySelector('.row-title').innerText.trim();
+        let weightVal = parseFloat(row.querySelector('.t2-weight').value) || 0;
+        
+        // สูตรเดียวกับ Tab 1 เป๊ะ: (น้ำหนัก / 100) * 20
+        let multiplier = (weightVal / 100) * 20;
+        
+        row.querySelector('.preview-mult').innerText = multiplier.toFixed(1);
+
+        totalWeight += weightVal;
+        configs.push({ title: titleText, weight: weightVal, mult: multiplier });
+    });
+
+    if (configs.length === 0) {
+        alert('กรุณาเพิ่มช่องคะแนนอย่างน้อย 1 ช่อง');
+        return;
+    }
+
+    const thead = document.getElementById('t2_thead');
+    let headHTML = `<tr><th>คะแนน</th>`;
+    configs.forEach(c => headHTML += `<th>${c.title}<br>(${c.weight}%)</th>`);
+    headHTML += `<th>วิธีคิดคำนวณตามสูตร</th></tr>`;
+    thead.innerHTML = headHTML;
+
+    let scoreMap = {};
+
+    function generateCombinations(index, currentCombination) {
+        if (index === configs.length) {
+            let totalCalculated = 0;
+            currentCombination.forEach((gVal, i) => {
+                totalCalculated += (gVal * configs[i].weight / 100) * 20;
+            });
+            let roundedScore = Math.round(totalCalculated);
+            if (!scoreMap[roundedScore]) {
+                scoreMap[roundedScore] = [...currentCombination];
+            }
+            return;
+        }
+
+        // คะแนน ก. เป็น 1 ถึง 5 ทุกช่อง
+        for (let gVal = 1; gVal <= 5; gVal++) {
+            currentCombination.push(gVal);
+            generateCombinations(index + 1, currentCombination);
+            currentCombination.pop();
+        }
+    }
+
+    generateCombinations(0, []);
+
+    // คะแนนสูงสุดตามน้ำหนักที่ใส่
+    let maxPossibleScore = configs.reduce((sum, c) => sum + (5 * c.weight / 100 * 20), 0);
+
+    const tbody = document.getElementById('t2_tbody');
+    tbody.innerHTML = '';
+    let count = 0, missing = [];
+
+    for (let target = 1; target <= 100; target++) {
+        const tr = document.createElement('tr');
+        if (scoreMap[target]) {
+            count++;
+            const g = scoreMap[target];
+            let cellsHTML = `<td class="score-col">${target}</td>`;
+            g.forEach(val => cellsHTML += `<td><strong>${val}</strong></td>`);
+            
+            let formulaParts = g.map((val, i) => `(${val}×${configs[i].weight}/100×20)`);
+            let sumParts = g.map((val, i) => Number(((val * configs[i].weight / 100) * 20).toFixed(1)));
+            
+            cellsHTML += `<td class="formula-col">${formulaParts.join(' + ')} = ${sumParts.join('+')} = <strong>${target}</strong></td>`;
+            tr.innerHTML = cellsHTML;
+        } else {
+            missing.push(target);
+            tr.className = 'impossible-row';
+            tr.innerHTML = `<td class="score-col" style="color:#e11d48;">${target}</td><td colspan="${configs.length}">❌ ทำไม่ได้</td><td>-</td>`;
+        }
+        tbody.appendChild(tr);
+    }
+
+    const summary = document.getElementById('t2_summary');
+    summary.style.display = 'block';
+    let warningText = totalWeight !== 100 ? `<br><span style="color:#e11d48; font-weight:bold;">⚠️ หมายเหตุ: เปอร์เซ็นต์รวมกันได้ ${totalWeight}% (คะแนนเต็มรวมจะได้สูงสุด ${maxPossibleScore.toFixed(0)} คะแนน)</span>` : '';
+
+    summary.className = (missing.length === 0 && totalWeight === 100) ? 'summary-card summary-success' : 'summary-card summary-warning';
+    summary.innerHTML = `
+        <strong>สรุปผล Tab 2 (สูตร: ก × %น้ำหนัก / 100 × 20):</strong><br>
+        • คะแนนสูงสุดที่ทำได้ตาม % น้ำหนักชุดนี้คือ: <strong>${maxPossibleScore.toFixed(0)} คะแนน</strong><br>
+        • ทำคะแนนได้ทั้งหมด <strong>${count}</strong> คะแนน ${warningText}
+    `;
+}
+
+// รัน Tab 1 อัตโนมัติเมื่อเริ่มเปิดหน้าเว็บ
+window.onload = function() {
+    runCalculation();
+};
+</script>
+
+</body>
+</html>
