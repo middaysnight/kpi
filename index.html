@@ -1,451 +1,623 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>วิเคราะห์สูตรและคำนวณคะแนน</title>
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f4f8;
-            margin: 0;
-            padding: 20px;
-            color: #333;
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: #ffffff;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        }
-        h2 { text-align: center; color: #1a365d; margin-bottom: 8px; }
-        p.subtitle { text-align: center; color: #64748b; margin-bottom: 20px; }
-        
-        /* แท็บ Navigation */
-        .tab-buttons { display: flex; border-bottom: 2px solid #cbd5e1; margin-bottom: 20px; }
-        .tab-btn {
-            padding: 12px 24px;
-            border: none;
-            background: none;
-            font-size: 16px;
-            font-weight: bold;
-            color: #64748b;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.2s;
-        }
-        .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบคำนวณและจำลองการหยอดคะแนนประเมินราชการ (80:20 / 50:50)</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Sarabun', 'Segoe UI', Tahoma, sans-serif; }
+    body { background-color: #f1f5f9; margin: 0; padding: 20px; color: #1e293b; }
+    .container { max-width: 1040px; margin: auto; }
+    .card { background: #ffffff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); margin-bottom: 20px; }
+    h1 { font-size: 1.3rem; color: #1e3a8a; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+    h2 { font-size: 1.1rem; color: #1d4ed8; margin-top: 15px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    
+    .nav-tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #cbd5e1; padding-bottom: 6px; }
+    .tab-btn { background: #e2e8f0; color: #475569; border: none; padding: 10px 22px; border-radius: 6px 6px 0 0; cursor: pointer; font-weight: 700; font-size: 1rem; transition: all 0.2s; }
+    .tab-btn:hover { background: #cbd5e1; }
+    .tab-btn.active { background: #2563eb; color: #ffffff; }
 
-        /* Input Controls Panel */
-        .input-panel {
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        .input-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        .input-box { display: flex; flex-direction: column; }
-        .input-box label { font-weight: 600; margin-bottom: 6px; color: #334155; font-size: 14px; }
-        .input-box input {
-            padding: 10px;
-            border: 2px solid #cbd5e1;
-            border-radius: 6px;
-            text-align: center;
-            font-size: 18px;
-            font-weight: bold;
-            color: #0f172a;
-        }
-        .input-box input:focus { border-color: #2563eb; outline: none; }
-
-        /* Dynamic Table for Tab 2 */
-        .dynamic-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-        .dynamic-table th, .dynamic-table td { border: 1px solid #cbd5e1; padding: 8px; text-align: center; }
-        .dynamic-table th { background-color: #e2e8f0; color: #1e293b; font-size: 14px; }
-
-        /* Buttons */
-        .btn { padding: 12px 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
-        .btn-primary { background-color: #2563eb; color: white; width: 100%; }
-        .btn-primary:hover { background-color: #1d4ed8; }
-        .btn-add { background-color: #10b981; color: white; padding: 8px 16px; margin-bottom: 15px; }
-        .btn-add:hover { background-color: #059669; }
-        .btn-del { background-color: #ef4444; color: white; padding: 6px 12px; border-radius: 4px; }
-        .btn-del:hover { background-color: #dc2626; }
-
-        /* Summary Cards */
-        .summary-card { padding: 18px; border-radius: 8px; margin-bottom: 25px; font-size: 15px; line-height: 1.6; }
-        .summary-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
-        .summary-warning { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
-
-        /* Result Tables */
-        .table-responsive {
-            overflow-x: auto;
-            max-width: 100%;
-        }
-        table.result-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        table.result-table th, table.result-table td { border: 1px solid #e2e8f0; padding: 10px; text-align: center; white-space: nowrap; }
-        table.result-table th { background-color: #1e293b; color: white; font-weight: 600; position: sticky; top: 0; }
-        table.result-table tr:nth-child(even) { background-color: #f8fafc; }
-        tr.impossible-row { background-color: #fff1f2 !important; color: #e11d48; }
-        .score-col { font-weight: bold; color: #0284c7; font-size: 16px; }
-        .formula-col { text-align: left; font-family: monospace; color: #475569; }
-    </style>
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.9rem; }
+    th { background-color: #2563eb; color: #ffffff; font-weight: 600; padding: 8px 10px; border: 1px solid #1d4ed8; }
+    td { border: 1px solid #cbd5e1; padding: 8px 10px; }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    input, select, button { padding: 6px 10px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.9rem; }
+    button.btn-add { background: #10b981; color: white; border: none; cursor: pointer; font-weight: 600; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; }
+    button.btn-del { background: #ef4444; color: white; border: none; cursor: pointer; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+    .tfoot-row td { background: #f1f5f9; font-weight: 700; }
+    
+    .badge { display: inline-block; padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 0.95rem; margin: 3px; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; }
+    .badge:hover { transform: translateY(-1px); }
+    .badge-green { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
+    .badge-blue { background: #dbeafe; color: #1e40af; border-color: #bfdbfe; }
+    .badge-amber { background: #fef3c7; color: #b45309; border-color: #fde68a; }
+    .badge-gray { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+    .badge-active { background: #2563eb !important; color: #ffffff !important; border-color: #1d4ed8 !important; box-shadow: 0 2px 6px rgba(37,99,235,0.35); }
+    
+    .summary-table th { background-color: #cbd5e1; color: #1e293b; font-weight: 700; border-color: #94a3b8; }
+    .calc-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-top: 20px; font-size: 0.9rem; line-height: 1.7; color: #334155; }
+    .calc-step-title { font-weight: 700; color: #1e40af; margin-top: 10px; margin-bottom: 4px; }
+  </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>คำนวณและสอบทานสูตรคะแนน</h2>
-    <p class="subtitle">เลือกสลับแท็บเพื่อทดสอบแบบ 4 ช่องเปอร์เซ็นต์เดิม หรือกำหนดจำนวนช่องและน้ำหนักเอง</p>
-
-    <!-- แท็บ Navigation -->
-    <div class="tab-buttons">
-        <button class="tab-btn active" onclick="switchTab(1)">Tab 1: สูตร 4 ช่อง (%) เดิม</button>
-        <button class="tab-btn" onclick="switchTab(2)">Tab 2: กำหนดจำนวนช่องและน้ำหนักเอง</button>
+  <div class="card">
+    <h1>ระบบคำนวณคะแนนประเมินผลการปฏิบัติราชการ (สูตร ก × ข × 20)</h1>
+    
+    <!-- แท็บเลือกสัดส่วน -->
+    <div class="nav-tabs">
+      <button class="tab-btn active" id="btnTab8020" onclick="switchMode(80, 20)">สัดส่วน 80 : 20</button>
+      <button class="tab-btn" id="btnTab5050" onclick="switchMode(50, 50)">สัดส่วน 50 : 50</button>
     </div>
 
-    <!-- TAB 1: โค้ดฉบับดั้งเดิม 100% (ห้ามแตะ) -->
-    <div id="tab1" class="tab-content active">
-        <div class="input-panel">
-            <div class="input-grid">
-                <div class="input-box">
-                    <label>น้ำหนักช่อง 1 (%)</label>
-                    <input type="number" id="p1" value="35" min="0" max="100">
-                </div>
-                <div class="input-box">
-                    <label>น้ำหนักช่อง 2 (%)</label>
-                    <input type="number" id="p2" value="35" min="0" max="100">
-                </div>
-                <div class="input-box">
-                    <label>น้ำหนักช่อง 3 (%)</label>
-                    <input type="number" id="p3" value="25" min="0" max="100">
-                </div>
-                <div class="input-box">
-                    <label>น้ำหนักช่อง 4 (%)</label>
-                    <input type="number" id="p4" value="5" min="0" max="100">
-                </div>
-            </div>
+    <p style="font-size: 0.88rem; color: #64748b; margin-top: -6px;">
+      กำลังคำนวณในสัดส่วน: <strong id="lblCurrentRatio" style="color:#2563eb;">ผลสัมฤทธิ์ 80% : สมรรถนะ 20%</strong> (เกณฑ์ขั้นต่ำเริ่มต้นที่ระดับ 3 ทุกข้อ)
+    </p>
 
-            <button class="btn btn-primary" onclick="runCalculation()">⚡ คำนวณตารางคะแนนใหม่</button>
-        </div>
+    <!-- ส่วนที่ 1: ผลสัมฤทธิ์ของงาน -->
+    <h2>
+      <span>ส่วนที่ 1: ผลสัมฤทธิ์ของงาน (น้ำหนักรวม 100%)</span>
+      <button class="btn-add" onclick="addRow('kpiBody', 'kpi-w', 'kpi-min', 'ตัวชี้วัดที่')">+ เพิ่มตัวชี้วัด</button>
+    </h2>
+    <table>
+      <thead>
+        <tr>
+          <th>ตัวชี้วัด</th>
+          <th class="text-center" style="width: 15%;">น้ำหนัก (ข)%</th>
+          <th class="text-center" style="width: 18%; background: #1e40af;">ขั้นต่ำที่ยอมรับได้</th>
+          <th class="text-center" style="width: 12%;">จัดการ</th>
+        </tr>
+      </thead>
+      <tbody id="kpiBody">
+        <tr>
+          <td class="item-name" style="font-weight: 600;">ตัวชี้วัดที่ 1</td>
+          <td class="text-center"><input type="number" class="kpi-w" value="30" min="0" max="100" step="any" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="kpi-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this, 'kpiBody')">ลบ</button></td>
+        </tr>
+        <tr>
+          <td class="item-name" style="font-weight: 600;">ตัวชี้วัดที่ 2</td>
+          <td class="text-center"><input type="number" class="kpi-w" value="25" min="0" max="100" step="any" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="kpi-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this, 'kpiBody')">ลบ</button></td>
+        </tr>
+        <tr>
+          <td class="item-name" style="font-weight: 600;">ตัวชี้วัดที่ 3</td>
+          <td class="text-center"><input type="number" class="kpi-w" value="25" min="0" max="100" step="any" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="kpi-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this, 'kpiBody')">ลบ</button></td>
+        </tr>
+        <tr>
+          <td class="item-name" style="font-weight: 600;">ตัวชี้วัดที่ 4</td>
+          <td class="text-center"><input type="number" class="kpi-w" value="20" min="0" max="100" step="any" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="kpi-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this, 'kpiBody')">ลบ</button></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr class="tfoot-row">
+          <td class="text-right">รวม (ส่วนที่ 1):</td>
+          <td class="text-center" id="kpiSumW" style="color: #15803d;">100%</td>
+          <td colspan="2"><small style="color:#64748b;">(ต้องรวมได้ 100%)</small></td>
+        </tr>
+      </tfoot>
+    </table>
 
-        <div id="summaryCard" class="summary-card" style="display:none;"></div>
+    <!-- ส่วนที่ 2: สมรรถนะ -->
+    <h2 style="margin-top: 25px;">
+      <span>ส่วนที่ 2: พฤติกรรมการปฏิบัติราชการ / สมรรถนะ (น้ำหนักรวม 100%)</span>
+      <button class="btn-add" onclick="addRow('compBody', 'comp-w', 'comp-min', 'สมรรถนะที่')">+ เพิ่มสมรรถนะ</button>
+    </h2>
+    <table>
+      <thead>
+        <tr>
+          <th>สมรรถนะ</th>
+          <th class="text-center" style="width: 15%;">น้ำหนัก (ข)%</th>
+          <th class="text-center" style="width: 18%; background: #1e40af;">ขั้นต่ำที่ยอมรับได้</th>
+          <th class="text-center" style="width: 12%;">จัดการ</th>
+        </tr>
+      </thead>
+      <tbody id="compBody">
+        <tr>
+          <td class="item-name" style="font-weight: 600;">สมรรถนะที่ 1</td>
+          <td class="text-center"><input type="number" class="comp-w" value="15" min="0" max="100" step="any" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="comp-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this, 'compBody')">ลบ</button></td>
+        </tr>
+        <tr>
+          <td class="item-name" style="font-weight: 600;">สมรรถนะที่ 2</td>
+          <td class="text-center"><input type="number" class="comp-w" value="15" min="0" max="100" step="any" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="comp-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this, 'compBody')">ลบ</button></td>
+        </tr>
+        <tr>
+          <td class="item-name" style="font-weight: 600;">สมรรถนะที่ 3</td>
+          <td class="text-center"><input type="number" class="comp-w" value="15" min="0" max="100" step="any" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="comp-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this, 'compBody')">ลบ</button></td>
+        </tr>
+        <tr>
+          <td class="item-name" style="font-weight: 600;">สมรรถนะที่ 4</td>
+          <td class="text-center"><input type="number" class="comp-w" value="10" min="0" max="100" step="any" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="comp-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this, 'compBody')">ลบ</button></td>
+        </tr>
+        <tr>
+          <td class="item-name" style="font-weight: 600;">สมรรถนะที่ 5</td>
+          <td class="text-center"><input type="number" class="comp-w" value="15" min="0" max="100" step="any" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="comp-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this, 'compBody')">ลบ</button></td>
+        </tr>
+        <tr>
+          <td class="item-name" style="font-weight: 600;">สมรรถนะที่ 6</td>
+          <td class="text-center"><input type="number" class="comp-w" value="15" min="0" max="100" step="any" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="comp-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this, 'compBody')">ลบ</button></td>
+        </tr>
+        <tr>
+          <td class="item-name" style="font-weight: 600;">สมรรถนะที่ 7</td>
+          <td class="text-center"><input type="number" class="comp-w" value="15" min="0" max="100" step="any" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+          <td class="text-center">
+            <select class="comp-min" onchange="updateAll()">
+              <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option>
+            </select>
+          </td>
+          <td class="text-center"><button class="btn-del" onclick="delRow(this, 'compBody')">ลบ</button></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr class="tfoot-row">
+          <td class="text-right">รวม (ส่วนที่ 2):</td>
+          <td class="text-center" id="compSumW" style="color: #15803d;">100%</td>
+          <td colspan="2"><small style="color:#64748b;">(ต้องรวมได้ 100%)</small></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
 
-        <div class="table-responsive">
-            <table class="result-table">
-                <thead>
-                    <tr>
-                        <th style="width: 12%;">คะแนน</th>
-                        <th style="width: 10%;">ก1</th>
-                        <th style="width: 10%;">ก2</th>
-                        <th style="width: 10%;">ก3</th>
-                        <th style="width: 10%;">ก4</th>
-                        <th>วิธีคิดคำนวณตามสูตร</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody"></tbody>
-            </table>
-        </div>
-    </div>
+  <!-- กล่องแสดงตัวเลขที่ ผอ. เคาะได้ -->
+  <div class="card" style="border-left: 6px solid #2563eb;">
+    <h2 style="color: #0f172a; margin-top: 0;">คะแนนรวมสุทธิที่ ผอ. สามารถเคาะได้ (เลขจำนวนเต็ม)</h2>
+    <p style="font-size: 0.88rem; color: #64748b; margin-top: -4px;">
+      คำนวณตามสูตร ก × ข × 20 และเกณฑ์ขั้นต่ำ (คลิกตัวเลขเพื่อดูเฉลยการหยอดคะแนนและวิธีคำนวณ):
+    </p>
+    <div id="possibleScoresBox" style="margin-top: 10px; line-height: 2.2;"></div>
+  </div>
 
-    <!-- TAB 2: ปรับแก้ Algorithm ให้รองรับ 20+ ช่องได้รวดเร็วทันใจ -->
-    <div id="tab2" class="tab-content">
-        <div class="input-panel">
-            <p style="margin-top:0; font-weight:bold; color:#334155;">ตั้งค่าช่องคะแนนและน้ำหนัก (เพิ่ม/ลบ แถวได้อิสระ):</p>
-            <table class="dynamic-table">
-                <thead>
-                    <tr>
-                        <th>ชื่อช่อง</th>
-                        <th>น้ำหนัก (%)</th>
-                        <th>ตัวคูณสูตร (% ÷ 100 × 20)</th>
-                        <th>จัดการ</th>
-                    </tr>
-                </thead>
-                <tbody id="t2_input_rows">
-                    <tr>
-                        <td class="row-title">ช่องที่ 1</td>
-                        <td><input type="number" class="t2-weight" value="35" style="width:120px; text-align:center;"></td>
-                        <td class="preview-mult">7.0</td>
-                        <td><button class="btn btn-del" onclick="removeRow(this)">ลบ</button></td>
-                    </tr>
-                    <tr>
-                        <td class="row-title">ช่องที่ 2</td>
-                        <td><input type="number" class="t2-weight" value="35" style="width:120px; text-align:center;"></td>
-                        <td class="preview-mult">7.0</td>
-                        <td><button class="btn btn-del" onclick="removeRow(this)">ลบ</button></td>
-                    </tr>
-                    <tr>
-                        <td class="row-title">ช่องที่ 3</td>
-                        <td><input type="number" class="t2-weight" value="25" style="width:120px; text-align:center;"></td>
-                        <td class="preview-mult">5.0</td>
-                        <td><button class="btn btn-del" onclick="removeRow(this)">ลบ</button></td>
-                    </tr>
-                    <tr>
-                        <td class="row-title">ช่องที่ 4</td>
-                        <td><input type="number" class="t2-weight" value="5" style="width:120px; text-align:center;"></td>
-                        <td class="preview-mult">1.0</td>
-                        <td><button class="btn btn-del" onclick="removeRow(this)">ลบ</button></td>
-                    </tr>
-                </tbody>
-            </table>
-            
-            <button class="btn btn-add" onclick="addRow()">➕ เพิ่มช่องคะแนน</button>
-            <button class="btn btn-primary" onclick="runTab2()">⚡ ประมวลผล Tab 2</button>
-        </div>
-
-        <div id="t2_summary" class="summary-card" style="display:none;"></div>
-        <div class="table-responsive">
-            <table class="result-table">
-                <thead id="t2_thead"></thead>
-                <tbody id="t2_tbody"></tbody>
-            </table>
-        </div>
-    </div>
+  <!-- กล่องเฉลยการหยอดคะแนน -->
+  <div class="card" id="solutionCard" style="display: none; border-left: 6px solid #10b981;">
+    <div id="solutionContent"></div>
+  </div>
 </div>
 
 <script>
-// สลับแท็บ
-function switchTab(tabIndex) {
-    document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
-        btn.classList.toggle('active', idx === tabIndex - 1);
+  let ratioKPI = 0.80;
+  let ratioComp = 0.20;
+  let selectedScore = 93;
+
+  function formatNum(val) {
+    return Math.abs(val - Math.round(val)) < 1e-4 ? Math.round(val) : parseFloat(val.toFixed(2));
+  }
+
+  function calcStats(scores, weights) {
+    if (!scores.length) return { variance: 0, priorityRank: 0 };
+    const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const variance = scores.reduce((sum, x) => sum + Math.pow(x - mean, 2), 0);
+    // ให้ความสำคัญกับการใส่คะแนนสูงในข้อที่มีน้ำหนักมากกว่า และข้อลำดับต้นๆ
+    let priorityRank = 0;
+    for (let i = 0; i < scores.length; i++) {
+      priorityRank += scores[i] * (weights[i] * 100 + (scores.length - i));
+    }
+    return { variance, priorityRank };
+  }
+
+  function switchMode(kpi, comp) {
+    ratioKPI = kpi / 100.0;
+    ratioComp = comp / 100.0;
+
+    document.getElementById('btnTab8020').classList.toggle('active', kpi === 80);
+    document.getElementById('btnTab5050').classList.toggle('active', kpi === 50);
+
+    document.getElementById('lblCurrentRatio').innerText = `ผลสัมฤทธิ์ ${kpi}% : สมรรถนะ ${comp}%`;
+    updateAll();
+  }
+
+  function renumberRows(tbodyId, prefix) {
+    const rows = document.querySelectorAll(`#${tbodyId} tr`);
+    rows.forEach((row, index) => {
+      const nameCell = row.querySelector('.item-name');
+      if (nameCell) {
+        nameCell.innerText = `${prefix} ${index + 1}`;
+      }
     });
-    document.querySelectorAll('.tab-content').forEach((content, idx) => {
-        content.classList.toggle('active', idx === tabIndex - 1);
-    });
-}
+  }
 
-// ==========================================
-// CODE DEDICATED FOR TAB 1 (ดั้งเดิม 100%)
-// ==========================================
-function runCalculation() {
-    const p1 = parseFloat(document.getElementById('p1').value) || 0;
-    const p2 = parseFloat(document.getElementById('p2').value) || 0;
-    const p3 = parseFloat(document.getElementById('p3').value) || 0;
-    const p4 = parseFloat(document.getElementById('p4').value) || 0;
-
-    const totalP = p1 + p2 + p3 + p4;
-
-    const m1 = p1 * 0.2;
-    const m2 = p2 * 0.2;
-    const m3 = p3 * 0.2;
-    const m4 = p4 * 0.2;
-
-    let possibleScores = {};
-
-    for (let g1 = 1; g1 <= 5; g1++) {
-        for (let g2 = 1; g2 <= 5; g2++) {
-            for (let g3 = 1; g3 <= 5; g3++) {
-                for (let g4 = 1; g4 <= 5; g4++) {
-                    let score = Math.round((g1 * m1) + (g2 * m2) + (g3 * m3) + (g4 * m4));
-                    if (!possibleScores[score]) {
-                        possibleScores[score] = [g1, g2, g3, g4];
-                    }
-                }
-            }
-        }
-    }
-
-    const tbody = document.getElementById('tableBody');
-    tbody.innerHTML = '';
-
-    let successCount = 0;
-    let missingScores = [];
-
-    for (let target = 1; target <= 100; target++) {
-        const row = document.createElement('tr');
-
-        if (possibleScores[target]) {
-            successCount++;
-            const [g1, g2, g3, g4] = possibleScores[target];
-            const c1 = Number((g1 * m1).toFixed(1));
-            const c2 = Number((g2 * m2).toFixed(1));
-            const c3 = Number((g3 * m3).toFixed(1));
-            const c4 = Number((g4 * m4).toFixed(1));
-
-            row.innerHTML = `
-                <td class="score-col">${target}</td>
-                <td><strong>${g1}</strong></td>
-                <td><strong>${g2}</strong></td>
-                <td><strong>${g3}</strong></td>
-                <td><strong>${g4}</strong></td>
-                <td class="formula-col">(${g1}×${m1.toFixed(1)}) + (${g2}×${m2.toFixed(1)}) + (${g3}×${m3.toFixed(1)}) + (${g4}×${m4.toFixed(1)}) = ${c1}+${c2}+${c3}+${c4} = <strong>${target}</strong></td>
-            `;
-        } else {
-            missingScores.push(target);
-            row.className = 'impossible-row';
-            row.innerHTML = `
-                <td class="score-col" style="color:#e11d48;">${target}</td>
-                <td colspan="4">❌ ไม่พบชุดเลข 1-5 ที่ทำได้</td>
-                <td style="font-style:italic;">สูตรสัดส่วนนี้ไม่รองรับคะแนน ${target}</td>
-            `;
-        }
-        tbody.appendChild(row);
-    }
-
-    const summaryCard = document.getElementById('summaryCard');
-    summaryCard.style.display = 'block';
-
-    let warningText = totalP !== 100 ? `<br><span style="color:#e11d48; font-weight:bold;">⚠️ เตือน: เปอร์เซ็นต์รวมกันได้ ${totalP}% (ควรจะเท่ากับ 100%)</span>` : '';
-
-    if (missingScores.length === 0) {
-        summaryCard.className = 'summary-card summary-success';
-        summaryCard.innerHTML = `
-            <strong>🎉 สูตรนี้สมบูรณ์แบบ! (${p1}%, ${p2}%, ${p3}%, ${p4}%)</strong><br>
-            • ตัวคูณแต่ละช่องคือ: <strong>${m1.toFixed(1)}, ${m2.toFixed(1)}, ${m3.toFixed(1)}, ${m4.toFixed(1)}</strong><br>
-            • ทำคะแนนได้ครบทั้ง <strong>${successCount} คะแนน</strong> (ตั้งแต่ช่วง Min ถึง Max ไม่มีเลขตกหล่นเลย) ${warningText}
-        `;
-    } else {
-        summaryCard.className = 'summary-card summary-warning';
-        summaryCard.innerHTML = `
-            <strong>⚠️ สูตรนี้ทำได้ไม่ครบทุกเลข (${p1}%, ${p2}%, ${p3}%, ${p4}%)</strong><br>
-            • ตัวคูณแต่ละช่องคือ: <strong>${m1.toFixed(1)}, ${m2.toFixed(1)}, ${m3.toFixed(1)}, ${m4.toFixed(1)}</strong><br>
-            • ทำได้: <strong>${successCount}</strong> จาก 100 คะแนน<br>
-            • คะแนนที่ไม่สามารถทำได้ (${missingScores.length} ตัว): <strong>${missingScores.join(', ')}</strong> ${warningText}
-        `;
-    }
-}
-
-// ==========================================
-// CODE FOR TAB 2 (HIGH PERFORMANCE ALGORITHM)
-// ==========================================
-let rowCounter = 4;
-
-function addRow() {
-    rowCounter++;
-    const tbody = document.getElementById('t2_input_rows');
+  function addRow(tbodyId, wClass, minClass, prefix) {
+    const tbody = document.getElementById(tbodyId);
     const tr = document.createElement('tr');
     tr.innerHTML = `
-        <td class="row-title">ช่องที่ ${rowCounter}</td>
-        <td><input type="number" class="t2-weight" value="5" style="width:120px; text-align:center;"></td>
-        <td class="preview-mult">1.0</td>
-        <td><button class="btn btn-del" onclick="removeRow(this)">ลบ</button></td>
+      <td class="item-name" style="font-weight: 600;">${prefix}</td>
+      <td class="text-center"><input type="number" class="${wClass}" value="0" min="0" max="100" step="any" oninput="updateAll()" style="width: 70px; text-align: center;">%</td>
+      <td class="text-center">
+        <select class="${minClass}" onchange="updateAll()">
+          <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option>
+        </select>
+      </td>
+      <td class="text-center"><button class="btn-del" onclick="delRow(this, '${tbodyId}')">ลบ</button></td>
     `;
     tbody.appendChild(tr);
-}
+    renumberRows('kpiBody', 'ตัวชี้วัดที่');
+    renumberRows('compBody', 'สมรรถนะที่');
+    updateAll();
+  }
 
-function removeRow(btn) {
+  function delRow(btn, tbodyId) {
+    const tbody = document.getElementById(tbodyId);
+    if (tbody.querySelectorAll('tr').length <= 1) {
+      alert('ต้องมีรายการอย่างน้อย 1 ข้อ');
+      return;
+    }
     btn.closest('tr').remove();
-}
+    renumberRows('kpiBody', 'ตัวชี้วัดที่');
+    renumberRows('compBody', 'สมรรถนะที่');
+    updateAll();
+  }
 
-function runTab2() {
-    const rows = document.querySelectorAll('#t2_input_rows tr');
-    let configs = [];
-    let totalWeight = 0;
-
-    rows.forEach((row) => {
-        let titleText = row.querySelector('.row-title').innerText.trim();
-        let weightVal = parseFloat(row.querySelector('.t2-weight').value) || 0;
-        
-        let multiplier = (weightVal / 100) * 20;
-        row.querySelector('.preview-mult').innerText = multiplier.toFixed(1);
-
-        totalWeight += weightVal;
-        configs.push({ title: titleText, weight: weightVal, mult: multiplier });
+  function getData() {
+    const kNames = [], kW = [], kMin = [];
+    document.querySelectorAll('#kpiBody tr').forEach(tr => {
+      kNames.push(tr.querySelector('.item-name').innerText);
+      let w = Math.max(0, parseFloat(tr.querySelector('.kpi-w').value) || 0);
+      kW.push(w);
+      kMin.push(parseInt(tr.querySelector('.kpi-min').value) || 3);
     });
 
-    if (configs.length === 0) {
-        alert('กรุณาเพิ่มช่องคะแนนอย่างน้อย 1 ช่อง');
+    const cNames = [], cW = [], cMin = [];
+    document.querySelectorAll('#compBody tr').forEach(tr => {
+      cNames.push(tr.querySelector('.item-name').innerText);
+      let w = Math.max(0, parseFloat(tr.querySelector('.comp-w').value) || 0);
+      cW.push(w);
+      cMin.push(parseInt(tr.querySelector('.comp-min').value) || 3);
+    });
+
+    const kSum = kW.reduce((a, b) => a + b, 0);
+    const cSum = cW.reduce((a, b) => a + b, 0);
+
+    return { kNames, kW, kMin, kSum, cNames, cW, cMin, cSum };
+  }
+
+  function isBetterGroupCombo(newStats, oldStats) {
+    if (newStats.variance < oldStats.variance - 1e-5) return true;
+    if (Math.abs(newStats.variance - oldStats.variance) <= 1e-5) {
+      if (newStats.priorityRank > oldStats.priorityRank) return true;
+    }
+    return false;
+  }
+
+  function updateAll() {
+    const { kNames, kW, kMin, kSum, cNames, cW, cMin, cSum } = getData();
+
+    document.getElementById('kpiSumW').innerText = formatNum(kSum) + '%';
+    document.getElementById('kpiSumW').style.color = Math.abs(kSum - 100) < 0.01 ? '#15803d' : '#b91c1c';
+
+    document.getElementById('compSumW').innerText = formatNum(cSum) + '%';
+    document.getElementById('compSumW').style.color = Math.abs(cSum - 100) < 0.01 ? '#15803d' : '#b91c1c';
+
+    const box = document.getElementById('possibleScoresBox');
+
+    if (Math.abs(kSum - 100) > 0.01 || Math.abs(cSum - 100) > 0.01) {
+      box.innerHTML = `<span style="color:#b91c1c; font-weight:700;">⚠️ กรุณาปรับผลรวมน้ำหนักของทั้ง 2 ส่วนให้ครบ 100% ก่อน</span>`;
+      document.getElementById('solutionCard').style.display = 'none';
+      return;
+    }
+
+    // 1. สร้างชุดคะแนนส่วนที่ 1 (KPI)
+    let kpiMap = new Map();
+    function genKPI(idx, cur) {
+      if (idx === kW.length) {
+        let sumPart = 0;
+        let details = [];
+        for (let i = 0; i < kW.length; i++) {
+          let scorePart = cur[i] * (kW[i] / 100.0) * 20.0;
+          sumPart += scorePart;
+          details.push({ score: cur[i], weight: kW[i], part: scorePart });
+        }
+        let key = Math.round(sumPart * 10000) / 10000;
+        let stats = calcStats(cur, kW);
+        if (!kpiMap.has(key) || isBetterGroupCombo(stats, kpiMap.get(key).stats)) {
+          kpiMap.set(key, { scores: [...cur], sumScore: sumPart, details, stats });
+        }
         return;
+      }
+      for (let s = 5; s >= kMin[idx]; s--) { cur.push(s); genKPI(idx + 1, cur); cur.pop(); }
     }
+    genKPI(0, []);
 
-    const thead = document.getElementById('t2_thead');
-    let headHTML = `<tr><th>คะแนน</th>`;
-    configs.forEach(c => headHTML += `<th>${c.title}<br>(${c.weight}%)</th>`);
-    headHTML += `<th>วิธีคิดคำนวณตามสูตร</th></tr>`;
-    thead.innerHTML = headHTML;
+    // 2. สร้างชุดคะแนนส่วนที่ 2 (สมรรถนะ)
+    let compMap = new Map();
+    function genComp(idx, cur) {
+      if (idx === cW.length) {
+        let sumPart = 0;
+        let details = [];
+        for (let i = 0; i < cW.length; i++) {
+          let scorePart = cur[i] * (cW[i] / 100.0) * 20.0;
+          sumPart += scorePart;
+          details.push({ score: cur[i], weight: cW[i], part: scorePart });
+        }
+        let key = Math.round(sumPart * 10000) / 10000;
+        let stats = calcStats(cur, cW);
+        if (!compMap.has(key) || isBetterGroupCombo(stats, compMap.get(key).stats)) {
+          compMap.set(key, { scores: [...cur], sumScore: sumPart, details, stats });
+        }
+        return;
+      }
+      for (let s = 5; s >= cMin[idx]; s--) { cur.push(s); genComp(idx + 1, cur); cur.pop(); }
+    }
+    genComp(0, []);
 
-    // ⚡ อัลกอริทึมใหม่ Dynamic Programming สะดวกรวดเร็ว ไม่ค้างแน่นอน
-    let reachable = new Map();
-    reachable.set(0, []);
+    // 3. จับคู่ผลสัมฤทธิ์ + สมรรถนะ
+    let map = new Map();
+    for (let [, kObj] of kpiMap) {
+      for (let [, cObj] of compMap) {
+        let kScore = kObj.sumScore;
+        let cScore = cObj.sumScore;
+        let kWeighted = kScore * ratioKPI;
+        let cWeighted = cScore * ratioComp;
+        let rawTotal = kWeighted + cWeighted;
+        let roundedTotal = Math.round(rawTotal);
 
-    configs.forEach((cfg) => {
-        let nextReachable = new Map();
-        for (let [prevSum, prevArr] of reachable.entries()) {
-            for (let gVal = 1; gVal <= 5; gVal++) {
-                let addedVal = (gVal * cfg.weight / 100) * 20;
-                let newSum = prevSum + addedVal;
-                let rounded = Math.round(newSum * 10) / 10;
-                
-                if (!nextReachable.has(rounded)) {
-                    nextReachable.set(rounded, [...prevArr, gVal]);
+        if (Math.abs(rawTotal - roundedTotal) < 1e-4 && roundedTotal >= 20 && roundedTotal <= 100) {
+          let bothWeightedInt = (Math.abs(kWeighted - Math.round(kWeighted)) < 1e-4) &&
+                                (Math.abs(cWeighted - Math.round(cWeighted)) < 1e-4);
+          let balanceDiff = Math.abs(kScore - cScore);
+          let totalVar = kObj.stats.variance + cObj.stats.variance;
+
+          let candidate = {
+            k: kObj,
+            c: cObj,
+            kWeighted,
+            cWeighted,
+            total: roundedTotal,
+            bothWeightedInt,
+            balanceDiff,
+            totalVar
+          };
+
+          if (!map.has(roundedTotal)) {
+            map.set(roundedTotal, candidate);
+          } else {
+            let existing = map.get(roundedTotal);
+            let isBetter = false;
+            if (candidate.bothWeightedInt && !existing.bothWeightedInt) {
+              isBetter = true;
+            } else if (candidate.bothWeightedInt === existing.bothWeightedInt) {
+              if (candidate.balanceDiff < existing.balanceDiff - 1e-4) {
+                isBetter = true;
+              } else if (Math.abs(candidate.balanceDiff - existing.balanceDiff) <= 1e-4) {
+                if (candidate.totalVar < existing.totalVar - 1e-5) {
+                  isBetter = true;
                 }
+              }
             }
+            if (isBetter) {
+              map.set(roundedTotal, candidate);
+            }
+          }
         }
-        reachable = nextReachable;
+      }
+    }
+
+    const availableScores = Array.from(map.keys()).sort((a,b)=>a-b);
+
+    if (availableScores.length === 0) {
+      box.innerHTML = `<span style="color:#b91c1c;">ไม่พบตัวเลขคะแนนจำนวนเต็มที่สอดคล้องกับเกณฑ์ขั้นต่ำ ลองปรับลดเกณฑ์ขั้นต่ำลง</span>`;
+      document.getElementById('solutionCard').style.display = 'none';
+      return;
+    }
+
+    let html = '';
+    availableScores.forEach(sc => {
+      let badgeClass = sc >= 90 ? 'badge-green' : (sc >= 80 ? 'badge-blue' : (sc >= 70 ? 'badge-amber' : 'badge-gray'));
+      let active = sc === selectedScore ? 'badge-active' : '';
+      let grade = sc >= 90 ? 'ดีเด่น' : (sc >= 80 ? 'ดีมาก' : (sc >= 70 ? 'ดี' : (sc >= 60 ? 'พอใช้' : 'ต้องปรับปรุง')));
+      html += `<span class="badge ${badgeClass} ${active}" onclick="pickScore(${sc})">${sc} (${grade})</span> `;
     });
+    box.innerHTML = html;
 
-    // แมปเข้ากับคะแนนเป้าหมาย 1-100
-    let scoreMap = {};
-    for (let [sumVal, arr] of reachable.entries()) {
-        let roundedTarget = Math.round(sumVal);
-        if (roundedTarget >= 1 && roundedTarget <= 100) {
-            if (!scoreMap[roundedTarget]) {
-                scoreMap[roundedTarget] = arr;
-            }
-        }
+    if (selectedScore && map.has(selectedScore)) {
+      renderSolution(map.get(selectedScore), kNames, kW, cNames, cW);
+    } else if (availableScores.length > 0) {
+      pickScore(availableScores[availableScores.length - 1]);
     }
+  }
 
-    let maxPossibleScore = configs.reduce((sum, c) => sum + (5 * c.weight / 100 * 20), 0);
+  function pickScore(sc) {
+    selectedScore = sc;
+    updateAll();
+  }
 
-    const tbody = document.getElementById('t2_tbody');
-    tbody.innerHTML = '';
-    let count = 0, missingScores = [];
+  function renderSolution(sol, kNames, kW, cNames, cW) {
+    const card = document.getElementById('solutionCard');
+    const content = document.getElementById('solutionContent');
+    card.style.display = 'block';
 
-    for (let target = 1; target <= 100; target++) {
-        const tr = document.createElement('tr');
-        if (scoreMap[target]) {
-            count++;
-            const g = scoreMap[target];
-            let cellsHTML = `<td class="score-col">${target}</td>`;
-            g.forEach(val => cellsHTML += `<td><strong>${val}</strong></td>`);
-            
-            let formulaParts = g.map((val, i) => `(${val}×${configs[i].weight}/100×20)`);
-            let sumParts = g.map((val, i) => Number(((val * configs[i].weight / 100) * 20).toFixed(1)));
-            
-            cellsHTML += `<td class="formula-col">${formulaParts.join(' + ')} = ${sumParts.join('+')} = <strong>${target}</strong></td>`;
-            tr.innerHTML = cellsHTML;
-        } else {
-            missingScores.push(target);
-            tr.className = 'impossible-row';
-            tr.innerHTML = `<td class="score-col" style="color:#e11d48;">${target}</td><td colspan="${configs.length}">❌ ทำไม่ได้</td><td>-</td>`;
-        }
-        tbody.appendChild(row = tr);
-    }
+    let kRatioPct = Math.round(ratioKPI * 100);
+    let cRatioPct = Math.round(ratioComp * 100);
 
-    const summary = document.getElementById('t2_summary');
-    summary.style.display = 'block';
+    let html = `
+      <h2 style="color: #0f172a; margin-top:0;">เฉลยการหยอดคะแนนสำหรับเป้าหมาย: <span style="color: #2563eb; font-size:1.4rem;">${sol.total} คะแนน</span> (สัดส่วน ${kRatioPct}:${cRatioPct})</h2>
 
-    let warningText = totalWeight !== 100 ? `<br><span style="color:#e11d48; font-weight:bold;">⚠️ หมายเหตุ: เปอร์เซ็นต์รวมกันได้ ${totalWeight}% (คะแนนเต็มสูงสุดที่เป็นไปได้คือ ${maxPossibleScore.toFixed(0)} คะแนน)</span>` : '';
+      <h3 style="color: #1e40af; margin-bottom: 6px;">1. ช่องที่ต้องหยอดในส่วนที่ 1: ผลสัมฤทธิ์ของงาน</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>ตัวชี้วัด</th>
+            <th class="text-center" style="width: 20%; background: #1e40af;">คะแนน (ก) ที่ต้องหยอด</th>
+            <th class="text-center" style="width: 20%;">น้ำหนัก (ข)%</th>
+            <th class="text-center" style="width: 25%;">รวมคะแนน (ก × ข × 20)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sol.k.details.map((d, i) => `
+            <tr>
+              <td style="font-weight: 600;">${kNames[i]}</td>
+              <td class="text-center" style="background: #eff6ff;">
+                <strong style="color: #2563eb; font-size: 1.25rem;">${d.score}</strong>
+              </td>
+              <td class="text-center">${formatNum(d.weight)}%</td>
+              <td class="text-center font-mono">${formatNum(d.part)}</td>
+            </tr>
+          `).join('')}
+          <tr class="tfoot-row">
+            <td colspan="2" class="text-right">รวม (ส่วนที่ 1):</td>
+            <td class="text-center" style="color:#15803d;">100%</td>
+            <td class="text-center" style="color:#2563eb; font-size: 1.1rem;">${formatNum(sol.k.sumScore)}</td>
+          </tr>
+        </tbody>
+      </table>
 
-    if (missingScores.length === 0) {
-        summary.className = 'summary-card summary-success';
-        summary.innerHTML = `
-            <strong>🎉 สูตรนี้ทำได้ครบทุกคะแนน 1-100!</strong><br>
-            • ทำได้ครบทั้ง <strong>100 คะแนน</strong> ${warningText}
-        `;
-    } else {
-        summary.className = 'summary-card summary-warning';
-        summary.innerHTML = `
-            <strong>⚠️ สรุปผล Tab 2 (ทำได้ไม่ครบทุกเลข):</strong><br>
-            • ทำได้: <strong>${count}</strong> จาก 100 คะแนน<br>
-            • คะแนนที่ไม่สามารถทำได้ (${missingScores.length} ตัว): <strong>${missingScores.join(', ')}</strong> ${warningText}
-        `;
-    }
-}
+      <h3 style="color: #15803d; margin-top: 20px; margin-bottom: 6px;">2. ช่องที่ต้องหยอดในส่วนที่ 2: สมรรถนะ</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>สมรรถนะ</th>
+            <th class="text-center" style="width: 20%; background: #166534;">คะแนน (ก) ที่ต้องหยอด</th>
+            <th class="text-center" style="width: 20%;">น้ำหนัก (ข)%</th>
+            <th class="text-center" style="width: 25%;">รวมคะแนน (ก × ข × 20)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sol.c.details.map((d, i) => `
+            <tr>
+              <td style="font-weight: 600;">${cNames[i]}</td>
+              <td class="text-center" style="background: #f0fdf4;">
+                <strong style="color: #16a34a; font-size: 1.25rem;">${d.score}</strong>
+              </td>
+              <td class="text-center">${formatNum(d.weight)}%</td>
+              <td class="text-center font-mono">${formatNum(d.part)}</td>
+            </tr>
+          `).join('')}
+          <tr class="tfoot-row">
+            <td colspan="2" class="text-right">รวม (ส่วนที่ 2):</td>
+            <td class="text-center" style="color:#15803d;">100%</td>
+            <td class="text-center" style="color:#16a34a; font-size: 1.1rem;">${formatNum(sol.c.sumScore)}</td>
+          </tr>
+        </tbody>
+      </table>
 
-// รัน Tab 1 อัตโนมัติเมื่อเริ่มเปิดหน้าเว็บ
-window.onload = function() {
-    runCalculation();
-};
+      <!-- ตารางสรุปองค์ประกอบการประเมินตามสัดส่วนที่เลือก -->
+      <h3 style="color: #0f172a; margin-top: 24px; margin-bottom: 6px;">ตารางสรุปองค์ประกอบการประเมิน (สัดส่วน ${kRatioPct} : ${cRatioPct})</h3>
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>องค์ประกอบการประเมิน</th>
+            <th class="text-center" style="width: 20%;">คะแนน (ก)</th>
+            <th class="text-center" style="width: 20%;">น้ำหนัก (ข)</th>
+            <th class="text-center" style="width: 25%;">รวมคะแนน (ก × ข)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ส่วนที่ 1: ผลสัมฤทธิ์ของงาน</td>
+            <td class="text-center font-mono">${formatNum(sol.k.sumScore)}</td>
+            <td class="text-center">${kRatioPct}%</td>
+            <td class="text-center font-mono" style="font-weight:700;">${formatNum(sol.kWeighted)}</td>
+          </tr>
+          <tr>
+            <td>ส่วนที่ 2: พฤติกรรมการปฏิบัติราชการ (สมรรถนะ)</td>
+            <td class="text-center font-mono">${formatNum(sol.c.sumScore)}</td>
+            <td class="text-center">${cRatioPct}%</td>
+            <td class="text-center font-mono" style="font-weight:700;">${formatNum(sol.cWeighted)}</td>
+          </tr>
+          <tr style="background: #f8fafc; font-weight: 800;">
+            <td class="text-center">รวม</td>
+            <td class="text-center"></td>
+            <td class="text-center">100%</td>
+            <td class="text-center" style="color: #2563eb; font-size: 1.25rem;">${sol.total}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- กล่องแสดงวิธีการคำนวณแบบละเอียด -->
+      <div class="calc-box">
+        <div style="font-size: 1rem; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+          📝 แสดงวิธีการคำนวณแบบละเอียด (สำหรับเป้าหมาย ${sol.total} คะแนน):
+        </div>
+
+        <div class="calc-step-title">ขั้นตอนที่ 1: คำนวณส่วนที่ 1 ผลสัมฤทธิ์ของงาน (ก × ข × 20)</div>
+        ${sol.k.details.map((d, i) => `
+          <div>• ${kNames[i]}: ${d.score} × ${formatNum(d.weight)}% × 20 = <strong>${formatNum(d.part)}</strong> คะแนน</div>
+        `).join('')}
+        <div style="margin-top: 4px;">
+          - รวมคะแนนส่วนที่ 1 = ${sol.k.details.map(d => formatNum(d.part)).join(' + ')} = <strong>${formatNum(sol.k.sumScore)}</strong> คะแนน<br>
+          - คิดน้ำหนัก ${kRatioPct}% = ${formatNum(sol.k.sumScore)} × ${kRatioPct}% = <strong style="color: #2563eb;">${formatNum(sol.kWeighted)} คะแนน</strong>
+        </div>
+
+        <div class="calc-step-title" style="margin-top: 14px;">ขั้นตอนที่ 2: คำนวณส่วนที่ 2 สมรรถนะ (ก × ข × 20)</div>
+        ${sol.c.details.map((d, i) => `
+          <div>• ${cNames[i]}: ${d.score} × ${formatNum(d.weight)}% × 20 = <strong>${formatNum(d.part)}</strong> คะแนน</div>
+        `).join('')}
+        <div style="margin-top: 4px;">
+          - รวมคะแนนส่วนที่ 2 = ${sol.c.details.map(d => formatNum(d.part)).join(' + ')} = <strong>${formatNum(sol.c.sumScore)}</strong> คะแนน<br>
+          - คิดน้ำหนัก ${cRatioPct}% = ${formatNum(sol.c.sumScore)} × ${cRatioPct}% = <strong style="color: #16a34a;">${formatNum(sol.cWeighted)} คะแนน</strong>
+        </div>
+
+        <div class="calc-step-title" style="margin-top: 14px; color: #047857;">ขั้นตอนที่ 3: รวมคะแนนสุทธิ</div>
+        <div>
+          = ${formatNum(sol.kWeighted)} + ${formatNum(sol.cWeighted)} = <strong style="font-size: 1.15rem; color: #047857;">${sol.total} คะแนนเป๊ะ</strong>
+        </div>
+      </div>
+    `;
+
+    content.innerHTML = html;
+  }
+
+  // เริ่มต้นทำงาน
+  renumberRows('kpiBody', 'ตัวชี้วัดที่');
+  renumberRows('compBody', 'สมรรถนะที่');
+  updateAll();
 </script>
 
 </body>
